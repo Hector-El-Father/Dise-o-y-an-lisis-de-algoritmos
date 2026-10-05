@@ -1,5 +1,4 @@
 # Dise-o-y-an-lisis-de-algoritmos
-Proyectos relacionados con la materia de Algoritmos
 Biblioteca orientada a objetos desarrollada en Python 3 para crear y
 exportar grafos mediante distintos modelos de generación.
 ## Modelos implementados
