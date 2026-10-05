@@ -12,6 +12,6 @@ exportar grafos mediante distintos modelos de generación.
 
 ## Ejecución
 
-Para generar los grafos de 50, 200 y 500 nodos, al ejecutar generar_grafos.py se generara la carpeta resultados, antes de ejecutarlo, para no perder la carpeta resultados, renombrar dentro de main CARPETA_RESULTADOS = Path("resultados") para que no sobre escriba sobre ella misma
+Para generar los grafos de 50, 200 y 500 nodos, al ejecutar main.py se generara la carpeta resultados, antes de ejecutarlo, para no perder la carpeta resultados, renombrar dentro de main CARPETA_RESULTADOS = Path("resultados") para que no sobre escriba sobre ella misma
 ```bash
-python3 generar_grafos.py
+python3 main.py
