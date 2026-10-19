@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from pathlib import Path
+from collections import deque
+import subprocess
 
 # %%
 class Nodo:
@@ -130,6 +132,56 @@ class Grafo:
             for arista in self.aristas:
                 archivo.write(f'"{arista.nodo1.nombre}"--"{arista.nodo2.nombre}";\n')
             archivo.write("}\n")
+    def BFS(self, s):
+        visitados = set()
+        cola = deque()
+        arbol = Grafo()
+        visitados.add(s.id)
+        cola.append(s)
+        arbol.agregar_nodo(s)
+        while cola:
+            actual = cola.popleft()
+
+            for vecino in self.obtener_vecinos(actual):
+                if vecino.id not in visitados:
+                    visitados.add(vecino.id)
+                    cola.append(vecino)
+                    arbol.agregar_nodo(vecino)
+                    arbol.agregar_arista(Arista(actual, vecino))
+        return arbol
+    
+    def DFS_R(self, s):
+        visitados = set()
+        arbol = Grafo()
+        def explorar(actual):
+            visitados.add(actual.id)
+            for vecino in self.obtener_vecinos(actual):
+                if vecino.id not in visitados:
+                    arbol.agregar_nodo(vecino)
+                    arbol.agregar_arista(Arista(actual, vecino))
+                    explorar(vecino)
+        arbol.agregar_nodo(s)
+        explorar(s)
+        return arbol
+    def DFS_I(self, s):
+        visitados = {s.id}
+        arbol = Grafo()
+
+        arbol.agregar_nodo(s)
+        pila = [(s, iter(self.obtener_vecinos(s)))]
+        while pila:
+            actual, vecinos = pila[-1]
+            try:
+                vecino = next(vecinos)
+            except StopIteration:
+                pila.pop()
+                continue
+            if vecino.id not in visitados:
+                visitados.add(vecino.id)
+                arbol.agregar_nodo(vecino)
+                arbol.agregar_arista(Arista(actual, vecino))
+                pila.append((vecino, iter(self.obtener_vecinos(vecino))))
+        return arbol
 
 # %%
 # m representa columnas
@@ -161,7 +213,7 @@ def grafo_erdos_renyi(n,m):
     max_aristas = n * (n - 1) // 2
     if n<=0:
         return None
-    if m > max_aristas or m < n-1:
+    if m < 0 or m > max_aristas:
         return None
     grafo = Grafo()
     aristas_posibles=[]
@@ -170,7 +222,8 @@ def grafo_erdos_renyi(n,m):
         grafo.agregar_nodo(nodo)
     for i in range(1, n + 1):
         for j in range(i + 1, n + 1):
-            aristas_posibles=Arista(grafo.nodos[i],grafo.nodos[j])
+            arista = Arista(grafo.nodos[i], grafo.nodos[j])
+            aristas_posibles.append(arista)
     aristas_elegidas = random.sample(aristas_posibles, m)
     for arista in aristas_elegidas:
         grafo.agregar_arista(arista)
