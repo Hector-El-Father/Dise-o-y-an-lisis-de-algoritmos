@@ -8,11 +8,12 @@ from grafos import (
     grafo_gilbert,
     grafo_geografico,
     grafo_barabasi_albert,
-    grafo_dorogovtsev_mendes
+    grafo_dorogovtsev_mendes,
+    asignar_pesos
 )
 
-RUTA_BASE = Path(__file__).resolve().parent / "resultados_2_prueba"
-TAMANOS = [30, 100, 500]
+RUTA_BASE = Path(__file__).resolve().parent / "resultados_3"
+TAMANOS = [30,100]
 SEMILLA = 42
 
 
@@ -58,27 +59,39 @@ def validar_arbol(arbol):
     return es_conexo and E == V - 1
 
 
-def validar_resultados(grafos):
+def validar_resultados(grafos, distancias, predecesores):
     original = grafos["original"]
-    for nombre in [
-        "bfs",
-        "dfs_recursivo",
-        "dfs_iterativo"
-    ]:
-        arbol = grafos[nombre]
-        if not validar_arbol(arbol):
-            raise ValueError(f"Árbol inválido: {nombre}")
-        if not arbol.aristas.issubset(original.aristas):
+    arbol = grafos["dijkstra"]
+    if not validar_arbol(arbol):
+        raise ValueError("El árbol de Dijkstra no es válido")
+    for arista in arbol.aristas:
+        u = arista.nodo1.id
+        v = arista.nodo2.id
+        if v not in original.adyacencias[u]:
             raise ValueError(
-                f"El árbol {nombre} contiene aristas ajenas al original"
+                f"Arista inexistente: {u} -- {v}"
             )
-    if (
-        grafos["dfs_recursivo"].aristas
-        != grafos["dfs_iterativo"].aristas
-    ):
-        raise ValueError(
-            "DFS recursivo e iterativo generaron árboles diferentes"
-        )
+        if arista.peso != original.pesos[u][v]:
+            raise ValueError(
+                f"Peso incorrecto: {u} -- {v}"
+            )
+    for nodo, anterior in predecesores.items():
+        if anterior is None:
+            continue
+        peso = original.pesos[anterior][nodo]
+        if distancias[nodo] != distancias[anterior] + peso:
+            raise ValueError(
+                f"Distancia inconsistente en {nodo}"
+            )
+    for arista in original.aristas:
+        u = arista.nodo1.id
+        v = arista.nodo2.id
+        peso = arista.peso
+        if distancias[v] > distancias[u] + peso:
+            raise ValueError(f"Distancia no óptima hacia {v}")
+
+        if distancias[u] > distancias[v] + peso:
+            raise ValueError(f"Distancia no óptima hacia {u}")
 
     return True
 # procesar los grafos
@@ -86,14 +99,12 @@ def procesar_grafo(grafo, s, ruta):
 
     ruta = Path(ruta)
     ruta.mkdir(parents=True, exist_ok=True)
-
+    arbol_dijkstra,distancias, predecesores= grafo.Dijkstra(s.id)
     grafos = {
         "original": grafo,
-        "bfs": grafo.BFS(s),
-        "dfs_recursivo": grafo.DFS_R(s),
-        "dfs_iterativo": grafo.DFS_I(s)
+        "dijkstra": arbol_dijkstra
     }
-    validar_resultados(grafos)
+    validar_resultados(grafos,distancias, predecesores)
     for nombre, resultado in grafos.items():
         archivo_gv = ruta / f"{nombre}.gv"
         resultado.guardar_gv(archivo_gv)
@@ -129,8 +140,8 @@ def generar_todos_los_grafos():
         }
         dimensiones = {
             30: (5, 6),
-            100: (10, 10),
-            500: (20, 25)
+            100: (10, 10)
+            #500: (20, 25)
         }
         m, filas = dimensiones[n]
         modelos["malla"] = grafo_malla(m, filas)
@@ -139,6 +150,10 @@ def generar_todos_los_grafos():
                 raise ValueError(
                     f"No fue posible generar {nombre} con {n} nodos"
                 )
+            grafo = asignar_pesos(
+                grafo,
+                peso_min=1,
+                peso_max=10,semilla=SEMILLA)
             s = next(iter(grafo.nodos.values()))
             ruta = RUTA_BASE / nombre / f"{n}_nodos"
             resultados = procesar_grafo(grafo, s, ruta)
@@ -147,10 +162,7 @@ def generar_todos_los_grafos():
                 "Aristas originales:",
                 grafo.obtener_numero_aristas()
             )
-            for algoritmo in [
-                "bfs",
-                "dfs_recursivo",
-                "dfs_iterativo"
+            for algoritmo in ["dijkstra"
             ]:
                 arbol = resultados[algoritmo]
                 print(
@@ -160,7 +172,5 @@ def generar_todos_los_grafos():
                 )
 #Ejecución
 if __name__ == "__main__":
-
     generar_todos_los_grafos()
-
     print("\nGeneración terminada correctamente.")

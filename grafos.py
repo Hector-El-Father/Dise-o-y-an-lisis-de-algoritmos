@@ -6,6 +6,7 @@ import random
 from pathlib import Path
 from collections import deque
 import subprocess
+import heapq
 
 # %%
 class Nodo:
@@ -17,9 +18,10 @@ class Nodo:
 
 # %%
 class Arista:
-    def __init__(self, nodo1, nodo2):
+    def __init__(self, nodo1, nodo2, peso=1):
         self.nodo1 = nodo1
         self.nodo2 = nodo2
+        self.peso=peso
     def __eq__(self, arista_comparada):
         return (
             (self.nodo1 == arista_comparada.nodo1 and self.nodo2 == arista_comparada.nodo2)
@@ -37,11 +39,13 @@ class Grafo:
         self.nodos={}
         self.aristas=set()
         self.adyacencias={}
+        self.pesos={}
     def agregar_nodo(self, nodo):
         #si el id no esta en los nodos
         if nodo.id not in self.nodos:
             self.nodos[nodo.id]=nodo
             self.adyacencias[nodo.id]=set()
+            self.pesos[nodo.id]={}
         else:
             print("el nodo ya a sido definido para este grafo")
 
@@ -70,6 +74,9 @@ class Grafo:
         #actualiza las adyacencias en ambos sentidos
         self.adyacencias[arista.nodo1.id].add(arista.nodo2.id)
         self.adyacencias[arista.nodo2.id].add(arista.nodo1.id)
+        # Registramos el peso en ambos sentidos
+        self.pesos[arista.nodo1.id][arista.nodo2.id] = arista.peso
+        self.pesos[arista.nodo2.id][arista.nodo1.id] = arista.peso
        
     def obtener_vecinos(self, nodo):
         vecinos_del_nodo=[]
@@ -130,7 +137,11 @@ class Grafo:
             for nodo in self.nodos.values():
                 archivo.write(f'"{nodo.nombre}";\n')
             for arista in self.aristas:
-                archivo.write(f'"{arista.nodo1.nombre}"--"{arista.nodo2.nombre}";\n')
+                    archivo.write(
+                        f'"{arista.nodo1.nombre}" -- '
+                        f'"{arista.nodo2.nombre}" '
+                        f'[label="{arista.peso}"];\n'
+    )
             archivo.write("}\n")
     def BFS(self, s):
         visitados = set()
@@ -182,12 +193,51 @@ class Grafo:
                 arbol.agregar_arista(Arista(actual, vecino))
                 pila.append((vecino, iter(self.obtener_vecinos(vecino))))
         return arbol
+    
+    def Dijkstra(self, s):
+        distancia = {}
+        predecesor = {}
+        for v in self.nodos:
+            distancia[v] = float("inf")
+            predecesor[v] = None
+        distancia[s] = 0
+        cola = []
+        heapq.heappush(cola, (0, s))
+        while cola:
+            distancia_actual, u = heapq.heappop(cola)
+            if distancia_actual > distancia[u]:
+                continue
+            for v in self.adyacencias[u]:
+                peso = self.pesos[u][v]
+                nueva_distancia = distancia[u] + peso
+                if nueva_distancia < distancia[v]:
+                    distancia[v] = nueva_distancia
+                    predecesor[v] = u
+                    heapq.heappush(cola, (nueva_distancia, v))
+        arbol=Grafo()
+        for id_nodo in self.nodos:
+            if distancia[id_nodo] != float("inf"):
+                nodo_original = self.nodos[id_nodo]
+                nombre = f"{nodo_original.nombre} ({distancia[id_nodo]})"
+                nodo_nuevo = Nodo(id_nodo, nombre)
+                arbol.agregar_nodo(nodo_nuevo)
+
+        for nodo, anterior in predecesor.items():
+            if anterior is None:
+                continue   
+            nodo_origen = arbol.nodos[anterior]
+            nodo_destino = arbol.nodos[nodo]
+            peso = self.pesos[anterior][nodo]
+            arista_nueva = Arista(nodo_origen,nodo_destino,peso=peso)
+            arbol.agregar_arista(arista_nueva)
+        return arbol,distancia, predecesor
 
 # %%
 # m representa columnas
 # n representa filas
-def grafo_malla(m, n):
+def grafo_malla(m, n, peso_min=1, peso_max=11):
     grafo = Grafo()
+    rng = random.Random(42)
     for i in range(1, m+1):
         for j in range(1, n+1):
             nodo = Nodo(
@@ -198,10 +248,12 @@ def grafo_malla(m, n):
     for i in range(1, m + 1):
         for j in range(1, n + 1):
             if i < m:
-                arista_nueva=Arista(grafo.nodos[(i,j)],grafo.nodos[(i+1,j)])
+                peso=rng.randint(peso_min, peso_max)
+                arista_nueva=Arista(grafo.nodos[(i,j)],grafo.nodos[(i+1,j)], peso=peso)
                 grafo.agregar_arista(arista_nueva)
             if j < n:
-                arista_nueva=Arista(grafo.nodos[(i,j)],grafo.nodos[(i,j+1)])
+                peso=rng.randint(peso_min, peso_max)
+                arista_nueva=Arista(grafo.nodos[(i,j)],grafo.nodos[(i,j+1)], peso=peso)
                 grafo.agregar_arista(arista_nueva)
     return grafo
 
@@ -328,6 +380,23 @@ def grafo_dorogovtsev_mendes(n):
         grafo.agregar_arista(arista_nueva)
     return grafo
 
+def asignar_pesos(grafo, peso_min=1, peso_max=10, semilla=42):
+    if peso_min < 0 or peso_min > peso_max:
+        raise ValueError("Rango de pesos inválido")
+    rng = random.Random(semilla)
+    # Ordenamos las aristas para garantizar reproducibilidad
+    aristas_ordenadas = sorted(grafo.aristas, key=lambda a: tuple(sorted((repr(a.nodo1.id), repr(a.nodo2.id)))))
+    for arista in aristas_ordenadas:
+        # Generamos un peso por arista
+        peso = rng.randint(peso_min, peso_max)
+        u = arista.nodo1.id
+        v = arista.nodo2.id
+        # Actualizamos el objeto Arista
+        arista.peso = peso
+        # Actualizamos el diccionario en ambos sentidos
+        grafo.pesos[u][v] = peso
+        grafo.pesos[v][u] = peso
+    return grafo
 # %%
 
 
