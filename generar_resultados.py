@@ -13,7 +13,7 @@ from grafos import (
 )
 
 RUTA_BASE = Path(__file__).resolve().parent / "resultados_3"
-TAMANOS = [30,100]
+TAMANOS = [30,500]
 SEMILLA = 42
 
 
@@ -140,8 +140,8 @@ def generar_todos_los_grafos():
         }
         dimensiones = {
             30: (5, 6),
-            100: (10, 10)
-            #500: (20, 25)
+            100: (10, 10),
+            500: (20, 25)
         }
         m, filas = dimensiones[n]
         modelos["malla"] = grafo_malla(m, filas)
