@@ -7,3 +7,12 @@ __pycache__/
 
 # macOS
 .DS_Store
+# Python
+__pycache__/
+*.pyc
+
+# Entornos virtuales
+.venv/
+
+# Archivos del sistema
+.DS_Store
