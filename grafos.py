@@ -7,6 +7,7 @@ from pathlib import Path
 from collections import deque
 import subprocess
 import heapq
+from itertools import count
 
 # %%
 class Nodo:
@@ -77,7 +78,33 @@ class Grafo:
         # Registramos el peso en ambos sentidos
         self.pesos[arista.nodo1.id][arista.nodo2.id] = arista.peso
         self.pesos[arista.nodo2.id][arista.nodo1.id] = arista.peso
-       
+    def eliminar_arista(self,arista):
+        if arista not in self.aristas:
+            raise ValueError("La arista no existe en el grafo")
+        u=arista.nodo1.id
+        v=arista.nodo2.id
+        #Eliminamos la arista del conjunto
+        self.aristas.remove(arista)
+        #Eliminamos las relaciones de adyacencia
+        self.adyacencias[u].remove(v)
+        self.adyacencias[v].remove(u)
+        #Eliminamos los pesso almacenados
+        del self.pesos[u][v]
+        del self.pesos[v][u]
+    def copiar(self):
+        copia = Grafo()
+        # Copiar los nodos
+        for nodo in self.nodos.values():
+            nuevo_nodo = Nodo(nodo.id, nodo.nombre)
+            copia.agregar_nodo(nuevo_nodo)
+        # Copiar las aristas y sus pesos
+        for arista in self.aristas:
+            u = arista.nodo1.id
+            v = arista.nodo2.id
+            nueva_arista = Arista(copia.nodos[u],copia.nodos[v],arista.peso)
+            copia.agregar_arista(nueva_arista)
+        return copia
+
     def obtener_vecinos(self, nodo):
         vecinos_del_nodo=[]
         for vecinos_id in self.adyacencias[nodo.id]:
@@ -152,7 +179,6 @@ class Grafo:
         arbol.agregar_nodo(s)
         while cola:
             actual = cola.popleft()
-
             for vecino in self.obtener_vecinos(actual):
                 if vecino.id not in visitados:
                     visitados.add(vecino.id)
@@ -160,7 +186,6 @@ class Grafo:
                     arbol.agregar_nodo(vecino)
                     arbol.agregar_arista(Arista(actual, vecino))
         return arbol
-    
     def DFS_R(self, s):
         visitados = set()
         arbol = Grafo()
@@ -193,7 +218,6 @@ class Grafo:
                 arbol.agregar_arista(Arista(actual, vecino))
                 pila.append((vecino, iter(self.obtener_vecinos(vecino))))
         return arbol
-    
     def Dijkstra(self, s):
         distancia = {}
         predecesor = {}
@@ -231,7 +255,96 @@ class Grafo:
             arista_nueva = Arista(nodo_origen,nodo_destino,peso=peso)
             arbol.agregar_arista(arista_nueva)
         return arbol,distancia, predecesor
+    def Kruskal(self):
+        arbol=Grafo()
+        # Incorporamos todos los vértices del grafo original
+        for nodo in self.nodos.values():
+            arbol.agregar_nodo(nodo)
+        padre={nodo_id:nodo_id for nodo_id in self.nodos}
+        tamaño={nodo_id: 1 for nodo_id in self.nodos}
+        # find se encarga de buscar el representante
+        def find(u):
+            if padre[u] != u:
+                padre[u]=find(padre[u])
+            return padre[u]
+        def union(u,v):
+            raiz_u=find(u)
+            raiz_v=find(v)
+            if raiz_u==raiz_v:
+                return False
+            if tamaño[raiz_u] < tamaño[raiz_v]:
+                raiz_u, raiz_v = raiz_v, raiz_u
+                padre[raiz_v]=raiz_u
+                tamaño[raiz_u] += tamaño[raiz_v]
+            padre[raiz_v]=raiz_u
+            return True
+        aristas_ordenadas= sorted(self.aristas, key=lambda arista: arista.peso)
+        peso_total=0
+        for arista in aristas_ordenadas:
+            u=arista.nodo1.id
+            v=arista.nodo2.id
+            if union(u,v):
+                arbol.agregar_arista(Arista(arbol.nodos[u],arbol.nodos[v],arista.peso))
+                peso_total +=arista.peso
+            if arbol.obtener_numero_aristas() == len(self.nodos) - 1:
+                break
+        if len(self.nodos) == 0:
+            raise ValueError("El grafo está vacío")
+        if arbol.obtener_numero_aristas() != len(self.nodos) - 1:
+            raise ValueError("El grafo no es conexo")
+        return arbol,peso_total
 
+    def Kruskal_Inverso(self):
+        if self.obtener_numero_vertices() == 0:
+            raise ValueError("El grafo está vacío")
+        # Verificamos que el grafo original sea conexo
+        s = next(iter(self.nodos.values()))
+        if self.BFS(s).obtener_numero_vertices() != len(self.nodos):
+            raise ValueError("El grafo original no es conexo")
+        # Creamos una copia del grafo original
+        arbol = self.copiar()
+        # Ordenamos las aristas de mayor a menor peso
+        aristas_ordenadas = sorted(arbol.aristas,key=lambda a: (a.peso,tuple(sorted((repr(a.nodo1.id),repr(a.nodo2.id))))),reverse=True)
+        for arista in aristas_ordenadas:
+            if arbol.obtener_numero_aristas() == len(arbol.nodos) - 1:
+                break
+            arbol.eliminar_arista(arista)
+            s = next(iter(arbol.nodos.values()))
+            recorrido = arbol.BFS(s)
+            if recorrido.obtener_numero_vertices() != len(arbol.nodos):
+            # Restauramos la arista si desconecta el grafo
+                arbol.agregar_arista(arista)
+        peso_total = sum(arista.peso for arista in arbol.aristas)
+        return arbol,peso_total
+    def Prim(self, s):
+        if s not in self.nodos:
+            raise ValueError("El nodo inicial no existe")
+        arbol = Grafo()
+        for nodo in self.nodos.values():
+            arbol.agregar_nodo(nodo)
+        visitados = {s}
+        cola = []
+        contador=count()
+        peso_total = 0
+        for v in sorted(self.adyacencias[s], key=repr):
+            peso = self.pesos[s][v]
+            heapq.heappush(cola,(peso, next(contador), s, v))
+        while cola and len(visitados) < len(self.nodos):
+            peso, _, u, v = heapq.heappop(cola)
+            if v in visitados:
+                continue
+            visitados.add(v)
+            arbol.agregar_arista(Arista(arbol.nodos[u],arbol.nodos[v],peso))
+            peso_total += peso
+            for vecino in sorted(self.adyacencias[v], key=repr):
+                if vecino not in visitados:
+                    nuevo_peso = self.pesos[v][vecino]
+                    heapq.heappush(cola,(nuevo_peso, next(contador), v, vecino))
+        if len(visitados) != len(self.nodos):
+            raise ValueError("El grafo no es conexo")
+        return arbol, peso_total 
+
+    
 # %%
 # m representa columnas
 # n representa filas
