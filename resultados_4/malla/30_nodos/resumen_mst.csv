@@ -1,4 +1,0 @@
-Algoritmo,Peso MST,Aristas,Nodos,Semilla,Intentos
-Kruskal directo,86,29,30,42,1
-Kruskal inverso,86,29,30,42,1
-Prim,86,29,30,42,1
