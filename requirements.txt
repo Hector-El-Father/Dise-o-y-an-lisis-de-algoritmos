@@ -1,2 +1,15 @@
+contourpy==1.4.0
+cycler==0.12.1
+fonttools==4.69.1
+ImageIO==2.38.2
+imageio-ffmpeg==0.8.1
+kiwisolver==1.5.1
+matplotlib==3.11.2
+numpy==2.5.5
+packaging==26.4
+pandas==3.1.1
+pillow==13.0.0
 pygame==2.6.1
-python -m pip freeze > requirements.txt 
+pyparsing==3.3.3
+python-dateutil==4.0.0
+tzdata==2026.6
