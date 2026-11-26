@@ -136,17 +136,3 @@ Las imágenes se identifican por el nombre del modelo y el número de nodos, por
 - `barabasi_albert_100.png`
 - `barabasi_albert_500.png`
 
-Los videos MP4 individuales no se almacenan en el repositorio para evitar archivos pesados.
-
-## 8. Consideraciones
-
-Las simulaciones utilizan un número fijo de iteraciones para facilitar su comparación.
-
-Alcanzar las 600 iteraciones no garantiza la convergencia ni la eliminación de cruces entre aristas.
-
-Las coordenadas del grafo se ajustan únicamente durante la visualización para mantener los vértices dentro de la ventana, sin modificar el cálculo de fuerzas.
-
-## 9. Referencia
-
-Eades, P. (1984). *A heuristic for graph drawing*. Congressus Numerantium, 42, 149–160.
-
