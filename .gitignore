@@ -1,18 +1,7 @@
-# Python
-__pycache__/
-*.pyc
-
-# Jupyter
-.ipynb_checkpoints/
-
-# macOS
-.DS_Store
-# Python
-__pycache__/
-*.pyc
-
-# Entornos virtuales
 .venv/
-
-# Archivos del sistema
+__pycache__/
+*.pyc
 .DS_Store
+montaje_youtube.py
+resultados_5/videos/
+resultados_5/*.mp4
